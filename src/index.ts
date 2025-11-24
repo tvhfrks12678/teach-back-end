@@ -5,12 +5,6 @@ import { Elysia } from "elysia";
 import { pipe, Array, Option } from "effect"
 // const app = new Elysia().get("/", () => "Hello Elysia").listen(3000);
 
-new Elysia()
-  .get('/', 'Hello Elysia !!!')
-  .get('/user/:id', ({ params: { id }}) => id)
-  .post('/form', ({ body }) => body)
-  .listen(3000)
-
 // console.log(
 //   `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`
 // );
@@ -26,14 +20,27 @@ const users = [
 ] as const;
 
 // Option
-const getName = (user: typeof users[number]) : Option.Option<string> =>
-  user.name.trim() === "" ? Option.none<string>() : Option.some(user.name.trim());
 
+const isValidUser = (user: typeof users[number]) => user.name.trim().length > 0;
 const firstValidName = pipe(
   users,
-  Array.findFirst((u) => Option.isSome(getName(u))),
-  Option.flatMap(getName)
-);
+  Array.findFirst(isValidUser),
+  Option.map((user) => user.name.trim())
+)
+
+// const parseName = (user: typeof users[number]): Option.Option<string> => {
+//   const trimmed = user.name.trim();
+//   return trimmed.length === 0 ? Option.none() : Option.some(trimmed);
+// }
+
+// const getName = (user: typeof users[number０ー]) : Option.Option<string> =>
+//   user.name.trim() === "" ? Option.none<string>() : Option.some(user.name.trim());
+
+// const firstValidName = pipe(
+//   users,
+//   Array.findFirst((u) => Option.isSome(getName(u))),
+//   Option.flatMap(getName)
+// );
 
 // const firstValidName = pipe(
 //   users,
@@ -46,4 +53,15 @@ const firstValidName = pipe(
 
 const program = Console.log(firstValidName);
 
-Effect.runSync(program)
+// Effect.runSync(program)
+
+new Elysia()
+  .get('/', 'Hello Elysia !!!')
+  .get('/user/:id', ({ params: { id }}) => id)
+  .post('/form', ({ body }) => body)
+  .get('/first-user', () => {
+    return Option.getOrElse(firstValidName, () => "No valid user found")
+  })
+  .listen(3000)
+
+  console.log("🦊 Server is running at http://localhost:3000");
