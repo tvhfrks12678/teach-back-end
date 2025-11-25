@@ -2,7 +2,7 @@
 // import { Console, Effect } from "effect/index";
 import { Console, Effect } from "effect";
 import { Elysia } from "elysia";
-import { pipe, Array, Option } from "effect"
+import { pipe, Array, Option, Stream } from "effect"
 // const app = new Elysia().get("/", () => "Hello Elysia").listen(3000);
 
 // console.log(
@@ -64,4 +64,20 @@ new Elysia()
   })
   .listen(3000)
 
-  console.log("🦊 Server is running at http://localhost:3000");
+console.log("🦊 Server is running at http://localhost:3000");
+
+const parseNmaeStream = (user: typeof users[number]) => {
+  const trimmed = user.name.trim();
+  return trimmed.length > 0 ? Option.some(trimmed) : Option.none();
+};
+
+const programStream = pipe(
+  Stream.fromIterable(users),
+
+  Stream.filterMap(parseNmaeStream),
+
+  Stream.runHead
+);
+
+
+Effect.runPromise(programStream).then(console.log)
