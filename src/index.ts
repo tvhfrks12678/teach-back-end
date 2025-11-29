@@ -3,6 +3,8 @@
 import { Console, Effect } from "effect";
 import { Elysia } from "elysia";
 import { pipe, Array, Option, Stream } from "effect"
+import { resolve } from "bun";
+import { error } from "effect/Brand";
 // const app = new Elysia().get("/", () => "Hello Elysia").listen(3000);
 
 // console.log(
@@ -55,17 +57,6 @@ const program = Console.log(firstValidName);
 
 // Effect.runSync(program)
 
-new Elysia()
-  .get('/', 'Hello Elysia !!!')
-  .get('/user/:id', ({ params: { id }}) => id)
-  .post('/form', ({ body }) => body)
-  .get('/first-user', () => {
-    return Option.getOrElse(firstValidName, () => "No valid user found")
-  })
-  .listen(3000)
-
-console.log("🦊 Server is running at http://localhost:3000");
-
 const parseNmaeStream = (user: typeof users[number]) => {
   const trimmed = user.name.trim();
   return trimmed.length > 0 ? Option.some(trimmed) : Option.none();
@@ -81,3 +72,49 @@ const programStream = pipe(
 
 
 Effect.runPromise(programStream).then(console.log)
+
+
+// Applicative
+const fetchConfigEffect = Effect.promise(() => {
+  return new Promise<string>(resolve => {
+    setTimeout(() => resolve("Config: OK"), 500);
+  });
+}).pipe(
+  Effect.mapError(() => "API ERROR")
+);
+
+const fetchAnalyticsEffect = Effect.promise(() => {
+  console.log("-> Analytics API Start");
+  return new Promise<number>(resolve => {
+    setTimeout(() => resolve(42), 300);
+  });
+}).pipe(
+  Effect.mapError(() => "Error")
+);
+
+const combinedEffects = Effect.all([
+  fetchConfigEffect,
+  fetchAnalyticsEffect,
+]);
+
+const run = combinedEffects.pipe(
+  Effect.tap(([configResult, analyticsResult]) =>
+    Console.log(`--- 結合結果 ----`)
+      .pipe(Effect.flatMap(() => Console.log(`設定: ${configResult}, 分析: ${analyticsResult}`)))
+  ),
+  Effect.catchAll((error) => Console.error(`エラー発生: ${error}`)),
+)
+
+Effect.runPromise(run);
+
+new Elysia()
+  .get('/', 'Hello Elysia !!!')
+  .get('/user/:id', ({ params: { id }}) => id)
+  .post('/form', ({ body }) => body)
+  .get('/first-user', () => {
+    return Option.getOrElse(firstValidName, () => "No valid user found")
+  })
+  .listen(3000)
+
+console.log("🦊 Server is running at http://localhost:3000");
+
